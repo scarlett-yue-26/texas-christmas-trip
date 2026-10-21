@@ -20,6 +20,20 @@
 #flights .travel-cards .times b{font-size:17px}
 #flights .travel-cards .flight-notes{margin-top:auto;font-size:12px;line-height:1.7}
 @media(max-width:650px){#flights .travel-cards{grid-template-columns:minmax(0,1fr)}#flights .travel-cards .flight{padding:18px}}
+
+/* 每日路线：可折叠互动地图 */
+.day-mini-wrap{padding:0 20px 12px;background:#fffdf7}
+.day-mini{border:1px solid #e5dfd3;border-radius:16px;overflow:hidden;background:#fcfaf5;margin-top:10px}
+.day-mini>summary{cursor:pointer;list-style:none;padding:12px 15px;font-weight:750;color:#237e66;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px}
+.day-mini>summary::-webkit-details-marker{display:none}
+.day-mini>summary:after{content:'⌄';font-size:20px;transition:transform .2s}
+.day-mini[open]>summary:after{transform:rotate(180deg)}
+.day-mini-map{height:230px;width:100%;background:#e9eee6;z-index:0}
+.day-mini-links{padding:10px 12px 12px;display:flex;flex-wrap:wrap;gap:7px}
+.day-mini-links a{font-size:12px;text-decoration:none;color:#3d715d;background:#eaf3ed;border-radius:12px;padding:5px 9px;border:1px solid #d7e9de}
+.day-mini-note{font-size:11px;color:#8a8477;padding:0 12px 12px;line-height:1.55}
+.day-pin{border-radius:50%;width:25px;height:25px;border:2px solid #fff;background:#bc6846;box-shadow:0 2px 6px #0004;color:#fff;display:flex;align-items:center;justify-content:center;font:750 12px sans-serif}
+@media(max-width:550px){.day-mini-wrap{padding:0 14px 10px}.day-mini-map{height:205px}}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/></head>
 <body><main class="wrap">
@@ -87,6 +101,7 @@
 <section id="tips"><h2>💡 实用贴士</h2><div class="card tips"><ul><li><b>时差：</b>德州、Mobile 与 Gainesville 都使用中部/东部时区中的不同地区：德州大部分地区和 Mobile 比 Orlando/Gainesville 慢 1 小时。注意返程跨时区。</li><li><b>节日营业：</b>12/24 圣诞前夜及 12/25 圣诞节，景点、餐厅、商店可能缩短营业或关闭，安排行程前逐一确认。</li><li><b>长途驾驶：</b>Galveston → Mobile → Gainesville 路程较长，提前安排加油、休息和驾驶轮换。</li><li><b>天气：</b>12 月德州与沿途地区温差可能较大，出发前查看各城市天气预报。</li><li><b>预订信息隐私：</b>公开分享页面不包含电子票号、会员号、租车确认码及酒店预订编码。</li></ul></div></section>
 <footer class="footer">Texas Christmas Travel Book · 2026 · Made for the road 🤠<br><span class="small">v1.8 · 2026/10/21 更新行程（保留原版地图和设计）</span></footer>
 </main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
 // 手机仅放大德州路段；桌面继续显示原版完整路线地图。
 (function(){
@@ -118,7 +133,62 @@ const stays=[
 const stayForDate=date=>stays.find(st=>date>=st.date&&date<st.end);
 const stayMap=st=>mapPlace(st.name+' '+st.address);
 document.getElementById('stay-rows').innerHTML=stays.map(st=>'<tr><td class="stay-date-nowrap">'+st.date+' — '+st.end+'</td><td>'+esc(st.city)+'</td><td><a href="'+stayMap(st)+'" target="_blank" rel="noopener"><b>'+esc(st.name)+' ↗</b></a><div class="small muted">'+esc(st.address)+'</div></td><td><div class="stay-tags">'+st.benefits.map(t=>'<span class="pill '+(/待确认|收费|另确认|待核实/.test(t)?'pending':'')+'">'+esc(t)+'</span>').join('')+'</div><div class="small muted" style="margin-top:6px">'+esc(st.note)+'</div></td><td><span class="pill '+(st.booked?'':'pending')+' booking-status">'+esc(st.status)+'</span></td></tr>').join('');
-document.getElementById('days-container').innerHTML=days.map((x,i)=>{const st=stayForDate(x.d);return '<details class="card day" id="day-'+i+'" data-date="2026-'+x.d.replace('/','-')+'"><summary class="day-head"><div class="datebox">'+x.d+'<small>'+x.dow+'</small></div><div><h3>'+esc(x.title)+'</h3><div class="muted">'+esc(x.route[0])+' → '+esc(x.route[x.route.length-1])+' · 🚙 '+esc(x.drive)+'</div></div><span class="day-chevron" aria-hidden="true">⌄</span></summary><div class="routebar"><span class="small muted">🗺️ 今日路线</span><a class="button-link" href="'+mapRoute(x.route)+'" target="_blank" rel="noopener">Google 导航 ↗</a></div><div class="schedule">'+x.events.map(([time,title,note])=>'<div class="event"><time>'+esc(time)+'</time><div><div class="name">'+(title.includes('待定')||title.includes('暂定')?'<span class="tag">待确认</span> ':'')+'<a target="_blank" rel="noopener" href="'+mapPlace(title+' '+x.city)+'">'+esc(title)+' ↗</a></div><p>'+esc(note)+'</p></div></div>').join('')+'</div><details class="details"><summary>📍 查看今日地图 / 酒店</summary><p><a class="button-link" target="_blank" rel="noopener" href="'+mapPlace(x.city)+'">城市地图 ↗</a>　'+(st?'<a class="button-link" href="'+stayMap(st)+'" target="_blank" rel="noopener">🏨 '+esc(st.name)+' · '+esc(st.status)+' ↗</a>':'🏠 无酒店安排')+'</p></details></details>'}).join('');
+document.getElementById('days-container').innerHTML=days.map((x,i)=>{const st=stayForDate(x.d);return '<details class="card day" id="day-'+i+'" data-date="2026-'+x.d.replace('/','-')+'"><summary class="day-head"><div class="datebox">'+x.d+'<small>'+x.dow+'</small></div><div><h3>'+esc(x.title)+'</h3><div class="muted">'+esc(x.route[0])+' → '+esc(x.route[x.route.length-1])+' · 🚙 '+esc(x.drive)+'</div></div><span class="day-chevron" aria-hidden="true">⌄</span></summary><div class="routebar"><span class="small muted">🗺️ 今日路线</span><a class="button-link" href="'+mapRoute(x.route)+'" target="_blank" rel="noopener">Google 导航 ↗</a></div><div class="day-mini-wrap"><details class="day-mini" data-mini-day="'+i+'"><summary>📍 展开今日景点小地图 · '+x.route.length+' 个地点</summary><div class="day-mini-map" id="mini-map-'+i+'" aria-label="'+esc(x.d)+' 今日景点地图"></div><div class="day-mini-links">'+x.route.map((p,n)=>'<a target="_blank" rel="noopener" href="'+mapPlace(p)+'">'+(n+1)+'. '+esc(p)+' ↗</a>').join('')+'</div><div class="day-mini-note">点击地图图钉可打开 Google Maps 地点详情。图上连接线仅表示游览顺序，不代表实际道路或导航路线。</div></details></div><div class="schedule">'+x.events.map(([time,title,note])=>'<div class="event"><time>'+esc(time)+'</time><div><div class="name">'+(title.includes('待定')||title.includes('暂定')?'<span class="tag">待确认</span> ':'')+'<a target="_blank" rel="noopener" href="'+mapPlace(title+' '+x.city)+'">'+esc(title)+' ↗</a></div><p>'+esc(note)+'</p></div></div>').join('')+'</div><details class="details"><summary>📍 查看今日地图 / 酒店</summary><p><a class="button-link" target="_blank" rel="noopener" href="'+mapPlace(x.city)+'">城市地图 ↗</a>　'+(st?'<a class="button-link" href="'+stayMap(st)+'" target="_blank" rel="noopener">🏨 '+esc(st.name)+' · '+esc(st.status)+' ↗</a>':'🏠 无酒店安排')+'</p></details></details>'}).join('');
+// 每日小地图：按用户展开时加载，避免折叠状态下 Leaflet 尺寸错误与不必要的瓦片请求。
+// 坐标用于展示景点分布；点击图钉始终由 Google Maps 搜索该地点的准确位置。
+const miniCoords={
+'Houston IAH Airport':[29.9902,-95.3368],
+'Mission San Jose San Antonio':[29.3620,-98.4796],
+'The Alamo San Antonio':[29.4259,-98.4861],
+'San Antonio River Walk':[29.4241,-98.4888],
+'San Antonio North hotel area':[29.607,-98.493],
+'San Antonio North Texas':[29.607,-98.493],
+'Texas State Capitol Austin':[30.2747,-97.7404],
+'South Congress Avenue Austin':[30.2504,-97.7491],
+'Austin Trail of Lights Zilker Park':[30.2670,-97.7732],
+'avid hotel Austin NW Lakeline':[30.475,-97.801],
+'Austin NW Lakeline':[30.475,-97.801],
+'Mount Bonnell Austin Texas':[30.3210,-97.7732],
+'Staybridge Suites Dallas Market Ctr Love Field':[32.8222,-96.8713],
+'Dallas Arboretum':[32.821,-96.717],
+'The Eye 1601 Main St Dallas':[32.7805,-96.7980],
+'AT&T Discovery District Dallas':[32.7795,-96.8007],
+'Thanks-Giving Square Dallas':[32.7815,-96.7986],
+'Gaylord Texan Resort Grapevine':[32.9558,-97.0628],
+'Fort Worth Stockyards':[32.7890,-97.3473],
+'Cowtown Coliseum Fort Worth':[32.7883,-97.3484],
+'Grapevine Christmas Market Texas':[32.940,-97.078],
+'Dallas Museum of Art':[32.7876,-96.8011],
+'Bishop Arts District Dallas':[32.7491,-96.8284],
+'Discovery Green Houston':[29.7528,-95.3595],
+'Rice University Houston':[29.7174,-95.4018],
+'Rice Village Houston':[29.7144,-95.4155],
+'Hilton Galveston Island Resort':[29.2727,-94.8171],
+'Hyatt Studios Mobile Tillmans Corner':[30.592,-88.170],
+'Gainesville Florida':[29.6516,-82.3248],
+'Gainesville Regional Airport':[29.6901,-82.2718]
+};
+const initializedMinis=new Set();
+function initMiniMap(i){
+ if(initializedMinis.has(i)||typeof L==='undefined')return;
+ const d=days[i],node=document.getElementById('mini-map-'+i);if(!node)return;
+ const entries=d.route.map((name,index)=>({name,index,coord:miniCoords[name]})).filter(e=>e.coord);
+ if(!entries.length){node.textContent='地点地图暂不可用，请使用 Google 导航链接';return}
+ const map=L.map(node,{scrollWheelZoom:false,zoomControl:true,attributionControl:true});
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap contributors'}).addTo(map);
+ const bounds=[];
+ entries.forEach(({name,index,coord})=>{
+  const marker=L.marker(coord,{icon:L.divIcon({className:'',html:'<span class="day-pin">'+(index+1)+'</span>',iconSize:[25,25],iconAnchor:[12,12]})}).addTo(map);
+  const link=mapPlace(name);
+  marker.bindPopup('<b>'+esc(name)+'</b><br><a href="'+link+'" target="_blank" rel="noopener noreferrer">在 Google Maps 查看 ↗</a>');
+  marker.on('click',()=>{ /* 弹窗提供 Google Maps 地点入口 */ });
+  bounds.push(coord);
+ });
+ if(bounds.length>1){L.polyline(bounds,{color:'#bc6846',weight:2.5,opacity:.7,dashArray:'5 7'}).addTo(map);map.fitBounds(bounds,{padding:[25,25],maxZoom:12})}
+ else map.setView(bounds[0],12);
+ initializedMinis.add(i);setTimeout(()=>map.invalidateSize(),80);
+}
+document.querySelectorAll('.day-mini').forEach(el=>el.addEventListener('toggle',()=>{if(el.open)initMiniMap(Number(el.dataset.miniDay))}));
 // 日期按设备当地日历判断，不依赖用户所在时区；出发前跳首日，结束后跳末日。
 const todayLocal=new Date();
 const todayKey=`${todayLocal.getFullYear()}-${String(todayLocal.getMonth()+1).padStart(2,'0')}-${String(todayLocal.getDate()).padStart(2,'0')}`;
